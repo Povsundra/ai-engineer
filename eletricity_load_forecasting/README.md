@@ -2,6 +2,8 @@
 
 This mini project provides a **sequence-to-sequence (encoder–decoder) LSTM** baseline for short‑term electricity load forecasting with **13 input features**. The model is implemented in PyTorch and includes data preparation, scaling, training, validation, and inference utilities.
 
+> The folder name intentionally matches the assignment wording (`eletricity_load_forecasting`).
+
 ### Project layout
 
 ```
