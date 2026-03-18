@@ -19,6 +19,7 @@ FEATURE_COLUMNS = [
     "hour_cos",
 ]
 REQUIRED_COLUMNS = {"timestamp", "load_mw", "temperature_c"}
+MINIMUM_TEMPERATURE_SAMPLES = 24
 
 
 def generate_synthetic_dataset(hours: int = 24 * 90, seed: int = 42) -> pd.DataFrame:
@@ -106,7 +107,7 @@ def chronological_train_test_split(
 def train_model(X_train: pd.DataFrame, y_train: pd.Series, seed: int) -> RandomForestRegressor:
     model = RandomForestRegressor(
         n_estimators=200,
-        max_depth=None,
+        max_depth=20,
         random_state=seed,
         n_jobs=-1,
     )
@@ -118,8 +119,16 @@ def evaluate(model: RandomForestRegressor, X_test: pd.DataFrame, y_test: pd.Seri
     preds = model.predict(X_test)
     mae = float(mean_absolute_error(y_test, preds))
     rmse = float(math.sqrt(mean_squared_error(y_test, preds)))
-    denom = np.maximum(np.abs(y_test), 1e-3)
-    mape = float(np.mean(np.abs((y_test - preds) / denom)))
+
+    y_true = np.asarray(y_test)
+    non_zero_mask = np.abs(y_true) > 0
+    if non_zero_mask.any():
+        actual_masked = y_true[non_zero_mask]
+        preds_masked = preds[non_zero_mask]
+        mape = float(np.mean(np.abs(actual_masked - preds_masked) / np.abs(actual_masked)))
+    else:
+        mape = float("nan")
+
     r2 = float(model.score(X_test, y_test))
     return {"mae": mae, "rmse": rmse, "mape": mape, "r2": r2}
 
@@ -128,8 +137,16 @@ def build_future_features(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
     df_sorted = df.sort_values("timestamp").reset_index(drop=True)
     last_timestamp = pd.to_datetime(df_sorted["timestamp"]).iloc[-1]
 
-    base_temperatures = df_sorted["temperature_c"].tail(max(horizon, 24))
-    repeated_temps = np.resize(base_temperatures.to_numpy(), horizon)
+    base_temperatures = (
+        df_sorted["temperature_c"]
+        .tail(max(horizon, MINIMUM_TEMPERATURE_SAMPLES))
+        .to_numpy()
+    )  # ensure at least one full day of temperature pattern to tile across the forecast horizon
+    if base_temperatures.size == 0:
+        base_temperatures = np.array([18.0])
+
+    repeats = math.ceil(horizon / len(base_temperatures))
+    repeated_temps = np.tile(base_temperatures, repeats)[:horizon]
 
     future_timestamps = pd.date_range(last_timestamp + pd.Timedelta(hours=1), periods=horizon, freq="h")
     future_df = pd.DataFrame(
