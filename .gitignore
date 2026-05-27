@@ -1,0 +1,11 @@
+venv/
+.env
+outputs/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.streamlit/secrets.toml
+.DS_Store
+Thumbs.db
+homework2_gpt_llama/
+homework3_prompt_eng/
