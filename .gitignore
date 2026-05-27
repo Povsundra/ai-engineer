@@ -7,5 +7,3 @@ __pycache__/
 .streamlit/secrets.toml
 .DS_Store
 Thumbs.db
-homework2_gpt_llama/
-homework3_prompt_eng/

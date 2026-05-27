@@ -434,5 +434,5 @@ All AI-generated code was reviewed, tested, and understood before use.
 
 ## 👤 Author
 
-**CS 695 · AI Engineering — Assignment Project**
+**CS 695 · AI Engineering — Final Project**
 Track B: RAG Application
